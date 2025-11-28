@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<title>塾講師ゲーム（基礎版）</title>
+<style>
+  body { font-family: sans-serif; background:#f2f7ff; padding:20px; }
+  .box { background:white; padding:15px; border-radius:8px; margin-bottom:15px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
+  button { padding:8px 12px; margin:5px; }
+</style>
+</head>
+<body>
+
+<h1>塾講師ゲーム（基礎版）</h1>
+
+<div class="box">
+  <h3>ターン情報</h3>
+  <div id="turnInfo"></div>
+</div>
+
+<div class="box">
+  <h3>生徒ステータス</h3>
+  <div id="studentStatus"></div>
+</div>
+
+<div class="box">
+  <h3>講師ステータス</h3>
+  <div id="teacherStatus"></div>
+</div>
+
+<div class="box">
+  <h3>行動選択</h3>
+  <button onclick="doAction('teach')">授業</button>
+  <button onclick="doAction('follow')">個別フォロー</button>
+  <button onclick="doAction('interview')">面談</button>
+  <button onclick="doAction('rest')">休息</button>
+</div>
+
+<div class="box">
+  <h3>ログ</h3>
+  <div id="log" style="max-height:250px; overflow:auto; font-size:0.9rem;"></div>
+</div>
+
+<script>
+// =======================
+// データ
+// =======================
+let turn = 1;
+let maxTurn = 10;
+
+const seasons = ["春", "春", "夏", "夏", "秋", "秋", "冬", "冬", "冬", "冬"];
+
+let student = {
+  skill: 50,
+  mood: 60,
+  trust: 50
+};
+
+let teacher = {
+  stamina: 100
+};
+
+// =======================
+// UI更新
+// =======================
+function refreshUI() {
+  document.getElementById("turnInfo").innerText =
+    `ターン: ${turn} / ${maxTurn}　季節: ${seasons[turn-1]}`;
+
+  document.getElementById("studentStatus").innerText =
+    `学力: ${student.skill.toFixed(1)}　/　やる気: ${student.mood.toFixed(1)}　/　信頼: ${student.trust.toFixed(1)}`;
+
+  document.getElementById("teacherStatus").innerText =
+    `体力: ${teacher.stamina}`;
+}
+
+function log(msg) {
+  const el = document.getElementById("log");
+  el.innerHTML = `<div>▶ ${msg}</div>` + el.innerHTML;
+}
+
+// =======================
+// 季節ボーナス
+// =======================
+function seasonBonus(base) {
+  const s = seasons[turn-1];
+
+  if (s === "夏") return base * 1.2;
+  if (s === "冬") return base * 1.1;
+  return base;
+}
+
+// =======================
+// 行動処理
+// =======================
+function doAction(action) {
+  if (turn > maxTurn) return;
+
+  let baseGain;
+
+  switch(action) {
+    case "teach": // 授業
+      if (teacher.stamina < 10) { log("体力が足りない…休息が必要。"); return; }
+      baseGain = 6 + student.mood * 0.05;
+      student.skill += seasonBonus(baseGain);
+      student.mood += Math.random()*4 - 1;
+      teacher.stamina -= 12;
+      log("授業を行った。学力が上がった！");
+      break;
+
+    case "follow": // 個別フォロー
+      if (teacher.stamina < 15) { log("体力が足りない…休息が必要。"); return; }
+      student.mood += 10;
+      student.skill += 3;
+      teacher.stamina -= 15;
+      log("個別フォローでやる気UP！");
+      break;
+
+    case "interview": // 面談
+      student.trust += 8;
+      student.mood += 4;
+      teacher.stamina -= 8;
+      log("面談をした。信頼とやる気が上がった！");
+      break;
+
+    case "rest": // 休息
+      teacher.stamina = Math.min(100, teacher.stamina + 30);
+      student.mood -= 3;
+      log("休息した。体力回復。ただし生徒のやる気が少し下がる。");
+      break;
+  }
+
+  endTurn();
+}
+
+// =======================
+// ターン終了処理
+// =======================
+function endTurn() {
+  student.mood = Math.max(0, Math.min(100, student.mood));
+  student.skill = Math.max(0, Math.min(100, student.skill));
+  student.trust = Math.max(0, Math.min(100, student.trust));
+
+  // ランダムイベント
+  const r = Math.random();
+  if (r < 0.2) {
+    student.mood += 5;
+    log("【イベント】学校テストの手応えあり！やる気 +5");
+  } else if (r < 0.35) {
+    student.mood -= 5;
+    log("【イベント】友達が成績UPして焦り…やる気 -5");
+  }
+
+  turn++;
+
+  if (turn > maxTurn) {
+    judgeResult();
+    return;
+  }
+
+  refreshUI();
+}
+
+// =======================
+// 合格判定
+// =======================
+function judgeResult() {
+  refreshUI();
+  log("=== 最終結果 ===");
+
+  if (student.skill >= 80 && student.mood >= 60) {
+    log("【合格】十分な実力とやる気で見事合格！");
+  } else if (student.skill >= 70) {
+    log("【惜しい】実力はあったがメンタル面で不合格…");
+  } else {
+    log("【不合格】学力不足で届かなかった…");
+  }
+}
+
+refreshUI();
+log("ゲーム開始！");
+</script>
+
+</body>
+</html>
