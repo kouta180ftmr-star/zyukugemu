@@ -1,185 +1,174 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<title>塾講師ゲーム（基礎版）</title>
+<meta charset="UTF-8">
+<title>塾講師シミュレーションゲーム</title>
 <style>
-  body { font-family: sans-serif; background:#f2f7ff; padding:20px; }
-  .box { background:white; padding:15px; border-radius:8px; margin-bottom:15px; box-shadow:0 2px 6px rgba(0,0,0,0.1); }
-  button { padding:8px 12px; margin:5px; }
+body {
+    font-family: sans-serif;
+    background: #eef6ff;
+    padding: 20px;
+}
+#game {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    width: 600px;
+    margin: auto;
+    box-shadow: 0 0 10px #aaa;
+}
+.card {
+    background: #f0f8ff;
+    padding: 10px;
+    border-radius: 10px;
+    margin: 10px 0;
+    cursor: pointer;
+    border: 2px solid #bcd;
+}
+.card:hover {
+    background: #dff;
+}
 </style>
 </head>
 <body>
 
-<h1>塾講師ゲーム（基礎版）</h1>
-
-<div class="box">
-  <h3>ターン情報</h3>
-  <div id="turnInfo"></div>
-</div>
-
-<div class="box">
-  <h3>生徒ステータス</h3>
-  <div id="studentStatus"></div>
-</div>
-
-<div class="box">
-  <h3>講師ステータス</h3>
-  <div id="teacherStatus"></div>
-</div>
-
-<div class="box">
-  <h3>行動選択</h3>
-  <button onclick="doAction('teach')">授業</button>
-  <button onclick="doAction('follow')">個別フォロー</button>
-  <button onclick="doAction('interview')">面談</button>
-  <button onclick="doAction('rest')">休息</button>
-</div>
-
-<div class="box">
-  <h3>ログ</h3>
-  <div id="log" style="max-height:250px; overflow:auto; font-size:0.9rem;"></div>
+<div id="game">
+    <h1>塾講師シミュレーション</h1>
+    <div id="status"></div>
+    <div id="eventArea"></div>
+    <button id="nextTurnBtn">次のターンへ</button>
 </div>
 
 <script>
-// =======================
-// データ
-// =======================
+// -------------------------------
+// プレイヤーステータス
+// -------------------------------
 let turn = 1;
-let maxTurn = 10;
+let seasonIndex = 0;
+const seasons = ["春", "夏", "秋", "冬"];
 
-const seasons = ["春", "春", "夏", "夏", "秋", "秋", "冬", "冬", "冬", "冬"];
-
+// 生徒ステータス（生徒名：ごうくん）
 let student = {
-  skill: 50,
-  mood: 60,
-  trust: 50
+    name: "ごうくん",
+    score: 50,
+    motivation: 50,
+    bond: 30
 };
 
-let teacher = {
-  stamina: 100
+// -------------------------------
+// イベントガチャ（ランダム）
+// -------------------------------
+const events = [
+    { 
+        name: "定期テスト直前！",
+        cards: [
+            { title: "テスト対策を強化する", effect: { score: +10, motivation: -5 } },
+            { title: "休憩を提案する", effect: { motivation: +10, score: -3 } }
+        ]
+    },
+    {
+        name: "ごうくんが悩んでいる…",
+        cards: [
+            { title: "悩み相談を行う", effect: { bond: +15, motivation: +5 } },
+            { title: "授業を進める", effect: { score: +7 } }
+        ]
+    },
+    {
+        name: "保護者面談（ごうくんの保護者）",
+        cards: [
+            { title: "丁寧に状況説明", effect: { bond: +10 } },
+            { title: "結果を強調する", effect: { score: +8, bond: -5 } }
+        ]
+    }
+];
+
+// -------------------------------
+// ステータス更新表示
+// -------------------------------
+function updateStatus() {
+    const s = seasons[seasonIndex];
+    document.getElementById("status").innerHTML =
+        `<h3>ターン：${turn}（季節：${s}）</h3>
+         <strong>生徒：${student.name}</strong><br>
+         成績：${student.score}<br>
+         やる気：${student.motivation}<br>
+         絆：${student.bond}<br>`;
+}
+
+// -------------------------------
+// イベントガチャ表示
+// -------------------------------
+function showEvent() {
+    const ev = events[Math.floor(Math.random() * events.length)];
+    const area = document.getElementById("eventArea");
+
+    area.innerHTML = `<h2>イベント：${ev.name}</h2>`;
+
+    ev.cards.forEach(card => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.textContent = card.title;
+
+        div.onclick = () => {
+            applyEffect(card.effect);
+            nextTurn();
+        };
+
+        area.appendChild(div);
+    });
+}
+
+// -------------------------------
+// 効果適用
+// -------------------------------
+function applyEffect(effect) {
+    for (let key in effect) {
+        student[key] += effect[key];
+    }
+}
+
+// -------------------------------
+// ターン進行
+// -------------------------------
+function nextTurn() {
+    turn++;
+    seasonIndex = (seasonIndex + 1) % 4;
+    document.getElementById("eventArea").innerHTML = "";
+
+    if (turn > 10) {
+        endGame();
+    } else {
+        updateStatus();
+        showEvent();
+    }
+}
+
+// -------------------------------
+// ゲーム終了
+// -------------------------------
+function endGame() {
+    let result = "不合格…";
+    if (student.score >= 70 && student.motivation >= 40) {
+        result = "🎉ごうくん、合格おめでとう！！";
+    }
+    document.getElementById("eventArea").innerHTML =
+        `<h2>最終結果：${result}</h2>`;
+    document.getElementById("nextTurnBtn").style.display = "none";
+}
+
+// -------------------------------
+// 初期化
+// -------------------------------
+document.getElementById("nextTurnBtn").onclick = () => {
+    updateStatus();
+    showEvent();
+    document.getElementById("nextTurnBtn").style.display = "none";
 };
 
-// =======================
-// UI更新
-// =======================
-function refreshUI() {
-  document.getElementById("turnInfo").innerText =
-    `ターン: ${turn} / ${maxTurn}　季節: ${seasons[turn-1]}`;
+updateStatus();
 
-  document.getElementById("studentStatus").innerText =
-    `学力: ${student.skill.toFixed(1)}　/　やる気: ${student.mood.toFixed(1)}　/　信頼: ${student.trust.toFixed(1)}`;
-
-  document.getElementById("teacherStatus").innerText =
-    `体力: ${teacher.stamina}`;
-}
-
-function log(msg) {
-  const el = document.getElementById("log");
-  el.innerHTML = `<div>▶ ${msg}</div>` + el.innerHTML;
-}
-
-// =======================
-// 季節ボーナス
-// =======================
-function seasonBonus(base) {
-  const s = seasons[turn-1];
-
-  if (s === "夏") return base * 1.2;
-  if (s === "冬") return base * 1.1;
-  return base;
-}
-
-// =======================
-// 行動処理
-// =======================
-function doAction(action) {
-  if (turn > maxTurn) return;
-
-  let baseGain;
-
-  switch(action) {
-    case "teach": // 授業
-      if (teacher.stamina < 10) { log("体力が足りない…休息が必要。"); return; }
-      baseGain = 6 + student.mood * 0.05;
-      student.skill += seasonBonus(baseGain);
-      student.mood += Math.random()*4 - 1;
-      teacher.stamina -= 12;
-      log("授業を行った。学力が上がった！");
-      break;
-
-    case "follow": // 個別フォロー
-      if (teacher.stamina < 15) { log("体力が足りない…休息が必要。"); return; }
-      student.mood += 10;
-      student.skill += 3;
-      teacher.stamina -= 15;
-      log("個別フォローでやる気UP！");
-      break;
-
-    case "interview": // 面談
-      student.trust += 8;
-      student.mood += 4;
-      teacher.stamina -= 8;
-      log("面談をした。信頼とやる気が上がった！");
-      break;
-
-    case "rest": // 休息
-      teacher.stamina = Math.min(100, teacher.stamina + 30);
-      student.mood -= 3;
-      log("休息した。体力回復。ただし生徒のやる気が少し下がる。");
-      break;
-  }
-
-  endTurn();
-}
-
-// =======================
-// ターン終了処理
-// =======================
-function endTurn() {
-  student.mood = Math.max(0, Math.min(100, student.mood));
-  student.skill = Math.max(0, Math.min(100, student.skill));
-  student.trust = Math.max(0, Math.min(100, student.trust));
-
-  // ランダムイベント
-  const r = Math.random();
-  if (r < 0.2) {
-    student.mood += 5;
-    log("【イベント】学校テストの手応えあり！やる気 +5");
-  } else if (r < 0.35) {
-    student.mood -= 5;
-    log("【イベント】友達が成績UPして焦り…やる気 -5");
-  }
-
-  turn++;
-
-  if (turn > maxTurn) {
-    judgeResult();
-    return;
-  }
-
-  refreshUI();
-}
-
-// =======================
-// 合格判定
-// =======================
-function judgeResult() {
-  refreshUI();
-  log("=== 最終結果 ===");
-
-  if (student.skill >= 80 && student.mood >= 60) {
-    log("【合格】十分な実力とやる気で見事合格！");
-  } else if (student.skill >= 70) {
-    log("【惜しい】実力はあったがメンタル面で不合格…");
-  } else {
-    log("【不合格】学力不足で届かなかった…");
-  }
-}
-
-refreshUI();
-log("ゲーム開始！");
 </script>
 
 </body>
 </html>
+
